@@ -1,24 +1,23 @@
+package br.com.pasco.snakes;
+
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class SnakeMain {
 	
-	private static int[][] matrix = {{227, 191, 234, 67, 43, 13, 48, 211, 253, 243},
-									{36, 95, 229, 209, 49, 230, 46, 16, 190, 49},
-									{206, 130, 85, 67, 104, 93, 128, 243, 38, 173},
-									{234, 82, 191, 153, 170, 99, 124, 60, 12, 31},
-									{192, 9, 24, 127, 183, 241, 139, 21, 244, 66},
-									{93, 200, 66, 16, 189, 42, 209, 113, 215, 4},
-									{182, 141, 153, 64, 229, 55, 115, 139, 12, 187},
-									{133, 241, 35, 255, 126, 39, 110, 147, 24, 241},
-									{2, 202, 191, 159, 223, 128, 154, 109, 6, 200},
-									{173, 44, 163, 196, 159, 232, 135, 159, 117, 175}};
+	private static int[][] matrix;
+	
+	private static int matrixSize;
+	
+	private static int SNAKE_SIZE = 7;
 	
 	private static Map<String, int[]> directions = new HashMap<String, int[]>(4) {
-		/**
-		 * 
-		 */
+		
 		private static final long serialVersionUID = 1652809528074250100L;
 
 		{
@@ -31,22 +30,94 @@ public class SnakeMain {
 	
 	private static Map<Integer, ArrayList<Snake>> sumSnakes = new HashMap<Integer, ArrayList<Snake>>(0);
 
-	public static void main(String[] args) {		
+	private static BufferedReader stream;
+
+	public static void main(String[] args) {
+		if (args.length != 1) {
+			System.out.println("Missing arguments. Try: java Snake <file.csv>");
+			System.exit(1);
+		}
+		
+		matrix = readFile(args[0]);
+		
 		for(int i = 0; i < 10; i++) {
 			for(int j = 0; j < 10; j++) {
 				searchSnakes(new Snake(i, j));
 			}
 		}
+		System.out.println("FAIL");
+		System.exit(1);
+	}
+
+	private static int[][] readFile(String filename) {
+		String separator = ",";
+		int[][] resp = null;
+		
+		try {
+			FileInputStream fis = new FileInputStream(filename);
+			InputStreamReader isr = new InputStreamReader(fis);
+			stream = new BufferedReader(isr);
+			
+			String[] values;
+			matrixSize = 0;
+			int lineCounter = 0;
+			
+			stream.mark(1);
+			
+			String line = stream.readLine();
+			
+			// Test if file is empty. If not, initialize matrixSize and response.
+			if(line != null) {
+				values = line.split(separator);
+				matrixSize = values.length;
+				resp = new int[matrixSize][matrixSize];
+			}
+			else {
+				throw new RuntimeException("Empty file.");
+			}
+			
+			// Come back to beginning
+			stream.reset();
+			while ((line = stream.readLine()) != null) {			
+				values = line.split(separator);
+				
+				// Test if the line has the correct column size
+				if(values.length != matrixSize) {
+					 throw new RuntimeException("Invalid column size");
+				}
+				
+				for (int i = 0; i < values.length; i++) {
+					resp[lineCounter][i] = Integer.valueOf(values[i]);
+				}
+				
+				lineCounter++;
+			}
+		}
+		catch (Exception e) {
+			System.out.println("Error: " + e.getMessage());
+		}
+		finally {
+			try {
+				stream.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}	
+		}
+		
+		return resp;
 	}
 
 	private static void searchSnakes(Snake snake) {
 		if (snake != null) {
-			if (snake.getCells().size() < 7) {
+			// Test if the snake has the required size
+			// if not, a new function call are made for each direction
+			if (snake.getCells().size() < SNAKE_SIZE) {
 				searchSnakes(getNext("TOP", snake));
 				searchSnakes(getNext("RIGHT", snake));
 				searchSnakes(getNext("BOTTOM", snake));
 				searchSnakes(getNext("LEFT", snake));
 			}
+			// When a possible snake was found, find its pair.
 			else {
 				findSnakePair(snake);
 			}
@@ -54,22 +125,21 @@ public class SnakeMain {
 	}
 
 	private static void findSnakePair(Snake snake) {
-		int sum = getSnakeSum(snake);
-		if(sum==286) {
-			System.out.println(sum);
-		}
+		int sum = getSnakeSum(snake); // Calculate the sum of snake cells
+		
+		// Find if a snake with the same sum was already found
 		ArrayList<Snake> previousSnakes = sumSnakes.get(sum);
+		
 		if(previousSnakes != null) {
+			// If a snake with the same sum was found, test if there is a pair
 			ArrayList<Snake> snakePair = getSnakePair(snake, previousSnakes);
 			if(snakePair != null) {
-				System.out.print(sum+"\n");
 				for(Snake sp: snakePair) {
 					for(Cell c : sp.getCells()) {
-						System.out.print("{" + c.getI() + "," + c.getJ() + "} ");
+						System.out.print("{" + (c.getI()+1) + "," + (c.getJ()+1) + "} ");
 					}
 					System.out.print("\n");					
 				}
-				System.out.print("\n\n");
 				System.exit(0);
 			}
 			else {
@@ -82,7 +152,8 @@ public class SnakeMain {
 			sumSnakes.put(sum, sumList);
 		}		
 	}
-
+	
+	// Find on the list of snakes an allowed pair
 	private static ArrayList<Snake> getSnakePair(Snake snake, ArrayList<Snake> previousSnakes) {
 		for(Snake previous : previousSnakes) {
 			if(!haveCommomCells(snake, previous)) {
@@ -95,6 +166,7 @@ public class SnakeMain {
 		return null;
 	}
 
+	// Test if two snakes have common cells
 	private static boolean haveCommomCells(Snake snake, Snake previous) {
 		for(Cell snakeCell : snake.getCells()) {
 			for(Cell previousCell : previous.getCells()) {
@@ -121,17 +193,15 @@ public class SnakeMain {
 		Cell newCell = new Cell(0, 0);
 		Snake newSnake = new Snake(0,0);
 		
-		int MAX_I = 9;
-		int MAX_J = 9;
 		// Test if next i is negative or greater than matrix size-1
-		if(cell.getI() + dir[0] >= 0 && cell.getI() + dir[0] < MAX_I) {
+		if(cell.getI() + dir[0] >= 0 && cell.getI() + dir[0] < matrixSize - 1) {
 			newCell.setI(cell.getI() + dir[0]);			
 		}
 		else {
 			return null;
 		}
 		// Test if next j is negative or greater than matrix size-1
-		if(cell.getJ() + dir[1] >= 0 && cell.getJ() + dir[1] < MAX_J) {
+		if(cell.getJ() + dir[1] >= 0 && cell.getJ() + dir[1] < matrixSize - 1) {
 			newCell.setJ(cell.getJ() + dir[1]);			
 		}
 		else {
@@ -152,7 +222,7 @@ public class SnakeMain {
 
 	private static boolean allowed(Cell newCell, Snake snake) {
 		for(Cell cell : snake.getCells()) {
-			// Test if newCell is inside array already
+			// Test if newCell is already inside array
 			if(newCell.getI() == cell.getI() && newCell.getJ() == cell.getJ()) {
 				return false;
 			}

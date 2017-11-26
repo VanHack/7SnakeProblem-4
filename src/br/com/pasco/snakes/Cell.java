@@ -1,3 +1,4 @@
+package br.com.pasco.snakes;
 
 public class Cell {
 	int i;

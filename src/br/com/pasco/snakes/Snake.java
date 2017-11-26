@@ -1,3 +1,5 @@
+package br.com.pasco.snakes;
+
 import java.util.ArrayList;
 
 public class Snake {
