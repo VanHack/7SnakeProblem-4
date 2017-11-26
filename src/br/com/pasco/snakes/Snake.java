@@ -3,7 +3,7 @@ package br.com.pasco.snakes;
 import java.util.ArrayList;
 
 public class Snake {
-	ArrayList<Cell> cells;
+	private ArrayList<Cell> cells;
 	
 	public Snake(int i, int j) {
 		Cell cell = new Cell(i, j);

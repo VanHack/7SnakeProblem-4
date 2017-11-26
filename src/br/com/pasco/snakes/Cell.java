@@ -1,8 +1,8 @@
 package br.com.pasco.snakes;
 
 public class Cell {
-	int i;
-	int j;
+	private int i;
+	private int j;
 	
 	public Cell(int i, int j) {
 		this.i = i;
